@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a29">
+  <title>GAME CENTER｜遊戲選擇</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&display=swap");
+    :root {
+      --night:#101a29; --panel:#1b2b3e; --ink:#f2f0e8; --muted:#a0aec0;
+      --line:rgba(211,225,241,.14); --sun:#f2ce68; --blue:#5795ed; --red:#ed655e;
+      --ui:"DM Sans","Noto Sans TC",sans-serif; --mono:"DM Mono",monospace;
+    }
+    * { box-sizing:border-box; }
+    body {
+      min-height:100dvh; margin:0; display:grid; place-items:center; padding:32px 18px;
+      color:var(--ink); font-family:var(--ui);
+      background:
+        radial-gradient(ellipse at 14% 10%,rgba(75,126,177,.2),transparent 36rem),
+        radial-gradient(ellipse at 88% 85%,rgba(217,93,84,.12),transparent 34rem),var(--night);
+    }
+    .home { width:min(900px,100%); }
+    .masthead { margin-bottom:30px; text-align:center; }
+    .eyebrow { margin:0 0 11px; color:var(--sun); font:500 10px var(--mono); letter-spacing:.24em; }
+    h1 { margin:0; font-size:clamp(37px,8vw,65px); font-weight:800; line-height:1; letter-spacing:-.065em; }
+    .subtitle { margin:14px 0 0; color:var(--muted); font-size:13px; letter-spacing:.08em; }
+    .games { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:17px; }
+    .game-card {
+      position:relative; display:flex; min-height:340px; flex-direction:column; overflow:hidden;
+      padding:22px; border:1px solid var(--line); border-radius:22px;
+      background:linear-gradient(145deg,rgba(35,53,75,.96),rgba(24,39,57,.98));
+      color:inherit; text-decoration:none; box-shadow:0 20px 52px rgba(0,0,0,.22);
+      transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+    }
+    .game-card:hover { transform:translateY(-5px); border-color:rgba(242,206,104,.42); box-shadow:0 25px 56px rgba(0,0,0,.3); }
+    .game-card:focus-visible { outline:3px solid var(--sun); outline-offset:4px; }
+    .card-top { display:flex; align-items:center; justify-content:space-between; color:#a5b5c9; font:10px var(--mono); letter-spacing:.14em; }
+    .number-tag { color:#9ebeff; }
+    .art {
+      display:grid; min-height:190px; place-items:center; margin:18px 0 17px;
+      overflow:hidden; border:1px solid rgba(216,226,238,.08); border-radius:15px;
+      background:radial-gradient(circle at 50% 45%,rgba(101,143,193,.17),rgba(10,21,34,.26));
+    }
+    .number-art { display:flex; align-items:center; gap:10px; font:800 clamp(32px,6vw,53px) var(--mono); color:#d8e6f6; letter-spacing:-.12em; }
+    .number-art .question { z-index:1; color:var(--sun); font-size:1.24em; transform:translateY(-14px) rotate(8deg); }
+    .number-art .end-number { color:#a9b9cf; font-size:.72em; }
+    .number-art::after { position:absolute; width:120px; height:120px; border:1px dashed rgba(242,206,104,.25); border-radius:50%; content:""; }
+    .board-art {
+      display:grid; width:150px; aspect-ratio:1; grid-template-columns:repeat(4,1fr); overflow:hidden;
+      border:7px solid #30465f; border-radius:10px; box-shadow:0 16px 30px rgba(0,0,0,.3); transform:rotate(-5deg);
+    }
+    .square { display:grid; place-items:center; background:#e8dfcb; }
+    .square.dark { background:#536c85; }
+    .piece { width:68%; aspect-ratio:1; border:2px solid rgba(255,255,255,.5); border-radius:50%; box-shadow:inset 0 -4px rgba(0,0,0,.2),0 2px 4px rgba(0,0,0,.2); }
+    .piece.red { background:linear-gradient(145deg,#fa8376,var(--red)); }
+    .piece.blue { background:linear-gradient(145deg,#83b9ff,var(--blue)); }
+    .game-title { margin:0 0 4px; font-size:21px; font-weight:800; letter-spacing:-.04em; }
+    .game-en { color:#9eafc2; font:9px var(--mono); letter-spacing:.17em; }
+    .description { margin:11px 0 0; color:#aab8c8; font-size:12px; line-height:1.7; }
+    .open-label { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:19px; color:var(--sun); font-size:11px; font-weight:700; letter-spacing:.04em; }
+    .open-label .arrow { font:14px var(--mono); transition:transform .2s ease; }
+    .game-card:hover .arrow { transform:translateX(4px); }
+    footer { display:flex; justify-content:space-between; gap:12px; margin-top:24px; color:#77879c; font:9px var(--mono); letter-spacing:.08em; }
+    @media(max-width:620px) {
+      body { padding:24px 14px; }
+      .masthead { margin-bottom:24px; }
+      .games { grid-template-columns:1fr; gap:12px; }
+      .game-card { min-height:282px; padding:18px; }
+      .art { min-height:142px; margin:12px 0 14px; }
+      .board-art { width:118px; }
+      footer { flex-direction:column; text-align:center; }
+    }
+    @media(prefers-reduced-motion:reduce) { *,*::before,*::after { transition-duration:.01ms!important; } }
+  </style>
+</head>
+<body>
+  <main class="home">
+    <header class="masthead">
+      <p class="eyebrow">台灣玩家的小小遊戲間</p>
+      <h1>GAME CENTER</h1>
+      <p class="subtitle">兩款遊戲，一個輕巧的起點。</p>
+    </header>
+    <section class="games" aria-label="選擇遊戲">
+      <a class="game-card" href="/guess">
+        <div class="card-top"><span>01 / 推理</span><span class="number-tag">NUMBER GAME</span></div>
+        <div class="art" aria-hidden="true">
+          <div class="number-art"><span>1</span><span class="question">?</span><span class="end-number">100</span></div>
+        </div>
+        <h2 class="game-title">猜數字</h2>
+        <div class="game-en">NUMBER GUESSING</div>
+        <p class="description">縮小範圍，讀懂提示，用最少次數找出答案。</p>
+        <div class="open-label"><span>開始挑戰</span><span class="arrow">→</span></div>
+      </a>
+      <a class="game-card" href="/checkers">
+        <div class="card-top"><span>02 / 策略</span><span>RED VS BLUE</span></div>
+        <div class="art" aria-hidden="true">
+          <div class="board-art">
+            <div class="square dark"><i class="piece red"></i></div><div class="square"></div><div class="square dark"><i class="piece red"></i></div><div class="square"></div>
+            <div class="square"><i class="piece red"></i></div><div class="square dark"></div><div class="square"><i class="piece red"></i></div><div class="square dark"></div>
+            <div class="square dark"></div><div class="square"><i class="piece blue"></i></div><div class="square dark"></div><div class="square"><i class="piece blue"></i></div>
+            <div class="square"><i class="piece blue"></i></div><div class="square dark"></div><div class="square"><i class="piece blue"></i></div><div class="square dark"></div>
+          </div>
+        </div>
+        <h2 class="game-title">西洋跳棋</h2>
+        <div class="game-en">CHECKERS</div>
+        <p class="description">你執藍棋先行，紅棋由電腦應戰；連吃、升王都在棋盤上。</p>
+        <div class="open-label"><span>進入棋局</span><span class="arrow">→</span></div>
+      </a>
+    </section>
+    <footer><span>GAME CENTER / 兩款原創小遊戲</span><span>TAKE A TURN. MAKE A MOVE.</span></footer>
+  </main>
+</body>
+</html>

@@ -25,6 +25,56 @@ _schema_lock = threading.Lock()
 _schema_ready = False
 
 
+def _legacy_dedupe_leaderboard(conn):
+    """Historical cleanup retained for reference; never run during startup."""
+    conn.execute("""
+        WITH ranked AS (
+            SELECT
+                id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY level, LOWER(username)
+                    ORDER BY
+                        attempts ASC,
+                        time_taken ASC,
+                        created_at ASC,
+                        id ASC
+                ) AS rn
+            FROM leaderboard
+        )
+        DELETE FROM leaderboard
+        USING ranked
+        WHERE leaderboard.id = ranked.id
+          AND ranked.rn > 1
+    """)
+    conn.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS
+            leaderboard_level_username_unique
+        ON leaderboard (level, LOWER(username))
+    """)
+
+
+def _legacy_prune_leaderboard(conn, level):
+    """Historical top-50 pruning retained for reference; never called."""
+    conn.execute(
+        """
+        DELETE FROM leaderboard
+        WHERE level = %s
+          AND id NOT IN (
+              SELECT id
+              FROM leaderboard
+              WHERE level = %s
+              ORDER BY
+                  attempts ASC,
+                  time_taken ASC,
+                  created_at ASC,
+                  id ASC
+              LIMIT 50
+          )
+        """,
+        (level, level),
+    )
+
+
 def get_player_id():
     """
     使用 Flask session 識別目前的玩家。
@@ -44,9 +94,12 @@ def db_connection():
     """Connect to Neon and initialize database tables and indexes."""
     global _schema_ready
 
-    database_url = os.environ.get("DATABASE_URL")
+    database_url = (
+        os.environ.get("NEON_DATABASE_URL")
+        or os.environ.get("DATABASE_URL")
+    )
     if not database_url:
-        raise RuntimeError("DATABASE_URL is not configured")
+        raise RuntimeError("NEON_DATABASE_URL or DATABASE_URL is not configured")
 
     conn = psycopg.connect(
         database_url,
@@ -87,33 +140,6 @@ def db_connection():
                                 ),
                             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                         )
-                    """)
-
-                    # 同一難度、同名玩家只保留成績最好的一筆。
-                    conn.execute("""
-                        WITH ranked AS (
-                            SELECT
-                                id,
-                                ROW_NUMBER() OVER (
-                                    PARTITION BY level, LOWER(username)
-                                    ORDER BY
-                                        attempts ASC,
-                                        time_taken ASC,
-                                        created_at ASC,
-                                        id ASC
-                                ) AS rn
-                            FROM leaderboard
-                        )
-                        DELETE FROM leaderboard
-                        USING ranked
-                        WHERE leaderboard.id = ranked.id
-                          AND ranked.rn > 1
-                    """)
-
-                    conn.execute("""
-                        CREATE UNIQUE INDEX IF NOT EXISTS
-                            leaderboard_level_username_unique
-                        ON leaderboard (level, LOWER(username))
                     """)
 
                     conn.execute("""
@@ -223,9 +249,27 @@ def get_leaderboard(level):
     with db_connection() as conn:
         rows = conn.execute(
             """
+            WITH ranked_players AS (
+                SELECT
+                    username,
+                    attempts,
+                    time_taken,
+                    created_at,
+                    id,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY LOWER(BTRIM(username))
+                        ORDER BY
+                            attempts ASC,
+                            time_taken ASC,
+                            created_at ASC,
+                            id ASC
+                    ) AS player_rank
+                FROM leaderboard
+                WHERE level = %s
+            )
             SELECT username, attempts, time_taken, created_at
-            FROM leaderboard
-            WHERE level = %s
+            FROM ranked_players
+            WHERE player_rank = 1
             ORDER BY
                 attempts ASC,
                 time_taken ASC,
@@ -249,7 +293,17 @@ def get_leaderboard(level):
 
 @app.route("/")
 def index():
+    return render_template("home.html")
+
+
+@app.route("/guess")
+def guess_game():
     return render_template("index.html")
+
+
+@app.route("/checkers")
+def checkers_game():
+    return render_template("checkers.html")
 
 
 @app.route("/favicon.ico")
@@ -509,7 +563,13 @@ def submit_score():
                 SELECT id, attempts, time_taken
                 FROM leaderboard
                 WHERE level = %s
-                  AND LOWER(username) = LOWER(%s)
+                  AND LOWER(BTRIM(username)) = LOWER(%s)
+                ORDER BY
+                    attempts ASC,
+                    time_taken ASC,
+                    created_at ASC,
+                    id ASC
+                LIMIT 1
                 """,
                 (level, username),
             ).fetchone()
@@ -545,28 +605,26 @@ def submit_score():
                     (attempts, time_taken, existing["id"]),
                 )
 
-            # 全球排行榜仍然只保留每個難度的前 10 名。
-            conn.execute(
-                """
-                DELETE FROM leaderboard
-                WHERE level = %s
-                  AND id NOT IN (
-                      SELECT id
-                      FROM leaderboard
-                      WHERE level = %s
-                      ORDER BY
-                          attempts ASC,
-                          time_taken ASC,
-                          created_at ASC,
-                          id ASC
-                      LIMIT 50
-                  )
-                """,
-                (level, level),
-            )
-
             current = conn.execute(
                 """
+                WITH ranked_players AS (
+                    SELECT
+                        LOWER(BTRIM(username)) AS normalized_username,
+                        attempts,
+                        time_taken,
+                        created_at,
+                        id,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY LOWER(BTRIM(username))
+                            ORDER BY
+                                attempts ASC,
+                                time_taken ASC,
+                                created_at ASC,
+                                id ASC
+                        ) AS player_rank
+                    FROM leaderboard
+                    WHERE level = %s
+                )
                 SELECT
                     ROW_NUMBER() OVER (
                         ORDER BY
@@ -575,9 +633,9 @@ def submit_score():
                             created_at ASC,
                             id ASC
                     ) AS rank,
-                    LOWER(username) AS normalized_username
-                FROM leaderboard
-                WHERE level = %s
+                    normalized_username
+                FROM ranked_players
+                WHERE player_rank = 1
                 ORDER BY
                     attempts ASC,
                     time_taken ASC,
@@ -595,13 +653,14 @@ def submit_score():
                 ),
                 None,
             )
+            qualifies = rank is not None and rank <= 50
 
         return jsonify(
             {
                 "ok": True,
                 "updated": improved,
-                "qualified": rank is not None,
-                "rank": rank,
+                "qualified": qualifies,
+                "rank": rank if qualifies else None,
             }
         ), 201
 

@@ -29,6 +29,22 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.4);
     }
 
+    .home-link {
+      display: inline-block;
+      margin-bottom: 18px;
+      color: #aab8cf;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+    }
+    .home-link:hover { color: #ffffff; }
+    .home-link:focus-visible {
+      outline: 2px solid #a78bfa;
+      outline-offset: 4px;
+      border-radius: 3px;
+    }
+
     h1 {
       font-size: 2rem;
       font-weight: 700;
@@ -315,6 +331,7 @@
 </head>
 <body>
 <div class="card">
+  <a class="home-link" href="/">← GAME CENTER</a>
   <h1>🔢 Guess the Number</h1>
   <p class="subtitle">Can you crack the secret number?</p>
 

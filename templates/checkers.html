@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a29">
+  <title>西洋跳棋｜GAME CENTER</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='checkers.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="回到 GAME CENTER">
+      <span class="brand-mark" aria-hidden="true">GC</span>
+      <span class="brand-name">GAME CENTER<small>台灣玩家的小小遊戲間</small></span>
+    </a>
+    <a class="header-link" href="/"><span class="arrow" aria-hidden="true">←</span> 回到遊戲選單</a>
+  </header>
+
+  <main class="page-shell">
+    <section class="page-heading">
+      <div>
+        <p class="eyebrow">棋盤已就位 / 01</p>
+        <h1>西洋跳棋 <span>・ 紅藍對弈</span></h1>
+        <p class="page-description">你執藍棋先行，紅棋由電腦隨機應戰。看準斜線，找機會連吃，讓棋子一路升王。</p>
+      </div>
+    </section>
+
+    <section class="view setup-wrap" id="setup-view" aria-labelledby="setup-title">
+      <div class="setup-card">
+        <div class="setup-art" aria-hidden="true">
+          <div class="mini-board">
+            <div class="mini-square dark"><span class="mini-piece red"></span></div><div class="mini-square"></div><div class="mini-square dark"><span class="mini-piece red"></span></div><div class="mini-square"></div>
+            <div class="mini-square"><span class="mini-piece red"></span></div><div class="mini-square dark"></div><div class="mini-square"><span class="mini-piece red"></span></div><div class="mini-square dark"></div>
+            <div class="mini-square dark"></div><div class="mini-square"><span class="mini-piece blue"></span></div><div class="mini-square dark"></div><div class="mini-square"><span class="mini-piece blue"></span></div>
+            <div class="mini-square"><span class="mini-piece blue"></span></div><div class="mini-square dark"></div><div class="mini-square"><span class="mini-piece blue"></span></div><div class="mini-square dark"></div>
+          </div>
+        </div>
+        <p class="eyebrow">BLUE PLAYS FIRST</p>
+        <h2 id="setup-title">先走一步，棋局開始。</h2>
+        <p class="setup-copy">8 × 8 棋盤，十二枚藍棋對上十二枚紅棋。藍棋由你操作，紅棋交給隨機策略的電腦。</p>
+        <div class="setup-meta"><span>8 × 8 棋盤</span><span>藍棋先行</span><span>紅棋電腦</span></div>
+        <div class="setup-actions">
+          <button class="action-button primary" id="start-game" type="button"><span class="button-icon" aria-hidden="true">＋</span>開始對局</button>
+          <a class="action-button secondary" href="/">回到遊戲中心</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="view game-layout" id="game-view" hidden aria-label="西洋跳棋對局">
+      <section class="board-panel" aria-label="棋盤區">
+        <div class="board-topline">
+          <span class="board-label">第 <span id="turn-number">01</span> 手</span>
+          <span class="turn-chip" id="turn-chip" aria-live="polite"><span class="turn-dot" aria-hidden="true"></span><span id="turn-label">藍棋回合</span></span>
+        </div>
+        <div class="board-frame">
+          <div class="checker-board" id="checker-board" role="grid" aria-label="8 乘 8 西洋跳棋棋盤"></div>
+          <div class="board-coordinates" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span></div>
+        </div>
+        <div class="board-foot">
+          <span>點選棋子，再選擇斜向空格</span>
+          <span class="legend" aria-label="棋子顏色圖例">
+            <span class="legend-item"><i class="legend-dot blue"></i>你</span>
+            <span class="legend-item"><i class="legend-dot red"></i>電腦</span>
+          </span>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="對局資訊與操作">
+        <div class="status-block">
+          <p class="status-kicker">LIVE MATCH / 藍方先行</p>
+          <h2 class="status-title" id="status-title">輪到你走棋</h2>
+          <p class="status-copy" id="status-copy" aria-live="polite">選擇一枚藍棋，再點擊斜向的空格。</p>
+        </div>
+        <div class="piece-counts">
+          <div class="count-card red">
+            <div class="count-card-top"><i class="legend-dot red"></i>紅棋・電腦</div>
+            <strong class="count-value" id="red-count">12</strong>
+          </div>
+          <div class="count-card blue">
+            <div class="count-card-top"><i class="legend-dot blue"></i>藍棋・你</div>
+            <strong class="count-value" id="blue-count">12</strong>
+          </div>
+        </div>
+        <div class="steps-card"><span>藍棋完成回合</span><strong id="blue-steps">00</strong></div>
+
+        <div class="action-stack">
+          <button class="action-button primary" id="restart-game" type="button"><span class="button-icon" aria-hidden="true">↻</span>重新開始</button>
+          <button class="action-button secondary" id="back-to-setup" type="button"><span class="button-icon" aria-hidden="true">←</span>回到對局選單</button>
+        </div>
+        <p class="notice" id="game-notice" role="status" aria-live="polite"></p>
+
+        <details class="rule-details">
+          <summary>操作與棋規</summary>
+          <ul class="rule-list">
+            <li><strong>兵棋</strong>只能向前斜走或向前跳吃；到達底線升為國王。</li>
+            <li><strong>國王</strong>可向四個斜向移動與跳吃。</li>
+            <li>紅棋有可吃棋步時會優先跳吃，並自動完成同一枚棋子的連吃。</li>
+            <li>滑鼠或觸控連吃會鎖定同一枚藍棋；鍵盤仍可改選其他藍棋，也可點擊遠處空格結束連吃回合。</li>
+            <li>點選藍棋上的小字母，再按方向鍵可用鍵盤操作。</li>
+          </ul>
+        </details>
+        <div class="keyboard-guide" aria-label="鍵盤操作說明">
+          <p class="keyboard-title">鍵盤操作</p>
+          <div class="key-groups">
+            <div class="key-row"><span>選擇藍棋</span><span class="key-caps"><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd><kbd>V</kbd></span></div>
+            <div class="key-row"><span>斜向移動</span><span class="key-caps"><kbd>1</kbd><kbd>2</kbd><kbd>4</kbd><kbd>5</kbd></span></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="view end-wrap" id="end-view" hidden aria-labelledby="end-title">
+      <div class="end-card">
+        <p class="eyebrow">MATCH COMPLETE</p>
+        <h2 id="end-title">棋局結束</h2>
+        <p class="end-copy" id="end-copy"></p>
+        <div class="end-score">藍棋完成回合 <strong id="end-steps">0</strong></div>
+        <div class="setup-actions" style="margin-top:22px">
+          <button class="action-button primary" id="play-again" type="button"><span class="button-icon" aria-hidden="true">↻</span>再下一局</button>
+          <button class="action-button secondary" id="end-back" type="button">回到對局選單</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><span>GAME CENTER / CHECKERS</span><span>紅藍對弈・保持前進</span></footer>
+
+  <script src="{{ url_for('static', filename='checkers-engine.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='checkers.js') }}" defer></script>
+</body>
+</html>

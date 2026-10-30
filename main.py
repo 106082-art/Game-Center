@@ -1,14 +1,18 @@
 import math
 import os
 
-import psycopg2
-from flask import jsonify, request
+import psycopg
+from flask import Blueprint, jsonify, request
 from flask_cors import CORS
 
 from app import app
 
 CORS(app, resources={r"/*": {"origins": "*"}})
 SUPPORTED_LEVELS = {100, 1000, 10000}
+
+# Kept only as a reference for the former duplicate handlers. Do not register
+# this blueprint; app.py owns the public leaderboard API.
+legacy_api = Blueprint("legacy_leaderboard_api", __name__)
 
 
 class DatabaseNotConfigured(RuntimeError):
@@ -23,7 +27,7 @@ def get_db_connection():
         raise DatabaseNotConfigured("No PostgreSQL connection URL is configured")
     # libpq's default "prefer" mode uses TLS when the server supports it,
     # while still allowing local PostgreSQL instances without TLS.
-    return psycopg2.connect(database_url)
+    return psycopg.connect(database_url)
 
 
 def initialize_database():
@@ -170,7 +174,7 @@ def ping():
     return "Server is running", 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
-@app.route("/api/score", methods=["POST"])
+@legacy_api.route("/api/score", methods=["POST"])
 def submit_score():
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
@@ -228,11 +232,11 @@ def submit_score():
             ), 201
         finally:
             connection.close()
-    except (DatabaseNotConfigured, psycopg2.Error) as exc:
+    except (DatabaseNotConfigured, psycopg.Error) as exc:
         return database_error_response(exc)
 
 
-@app.route("/api/leaderboard", methods=["GET"])
+@legacy_api.route("/api/leaderboard", methods=["GET"])
 def get_leaderboard():
     level_value = request.args.get("level")
     try:
@@ -303,13 +307,8 @@ def get_leaderboard():
             )
         finally:
             connection.close()
-    except (DatabaseNotConfigured, psycopg2.Error) as exc:
+    except (DatabaseNotConfigured, psycopg.Error) as exc:
         return database_error_response(exc)
-
-
-# Initialize the table during application startup when a PostgreSQL URL is set.
-# Without one, the game still runs and leaderboard routes return 503.
-initialize_database()
 
 
 if __name__ == "__main__":

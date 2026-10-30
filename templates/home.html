@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#101827" />
+  <title>GAME CENTER</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 32px 18px;
+      display: grid;
+      place-items: center;
+      font-family: "Segoe UI", sans-serif;
+      color: #e8eef8;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(59,130,246,.18), transparent 32%),
+        radial-gradient(circle at 85% 80%, rgba(124,58,237,.20), transparent 35%),
+        #101827;
+    }
+    .shell { width: min(760px, 100%); }
+    header { text-align: center; margin-bottom: 34px; }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #8da6c8;
+      font-size: .76rem;
+      font-weight: 700;
+      letter-spacing: .28em;
+    }
+    h1 {
+      margin: 0;
+      color: #f8fafc;
+      font-size: clamp(2.2rem, 7vw, 3.6rem);
+      letter-spacing: .04em;
+    }
+    .subtitle {
+      margin: 10px 0 0;
+      color: #9aabc2;
+      letter-spacing: .16em;
+      font-size: .82rem;
+    }
+    .games {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .game-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 270px;
+      padding: 22px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid rgba(190,210,240,.14);
+      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(39,57,83,.94), rgba(25,38,59,.96));
+      box-shadow: 0 18px 45px rgba(0,0,0,.22);
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .game-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(147,179,255,.55);
+      box-shadow: 0 24px 55px rgba(0,0,0,.32);
+    }
+    .game-card:focus-visible {
+      outline: 3px solid #9fc1ff;
+      outline-offset: 4px;
+    }
+    .art {
+      min-height: 145px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 14px;
+      background: radial-gradient(circle, rgba(100,140,220,.20), rgba(13,24,42,.35));
+    }
+    .number-art {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #dbeafe;
+      font-size: clamp(2.3rem, 7vw, 3.6rem);
+      font-weight: 800;
+      text-shadow: 0 5px 24px rgba(59,130,246,.4);
+    }
+    .number-art span:nth-child(2) { color: #a78bfa; transform: translateY(-12px); }
+    .mini-board {
+      display: grid;
+      grid-template-columns: repeat(4, 31px);
+      grid-template-rows: repeat(4, 31px);
+      overflow: hidden;
+      border: 5px solid #26364e;
+      border-radius: 7px;
+      box-shadow: 0 12px 25px rgba(0,0,0,.25);
+      transform: rotate(-5deg);
+    }
+    .square { display: grid; place-items: center; background: #d9e2ef; }
+    .square.dark { background: #536985; }
+    .piece {
+      width: 21px;
+      height: 21px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-radius: 50%;
+      box-shadow: inset 0 -3px 4px rgba(0,0,0,.25), 0 2px 4px rgba(0,0,0,.25);
+    }
+    .piece.red { background: #ef555d; }
+    .piece.blue { background: #428cf5; }
+    .game-title { margin: auto 0 4px; font-size: 1.3rem; font-weight: 750; }
+    .game-en { color: #9fb1c9; font-size: .72rem; letter-spacing: .15em; }
+    .open-label { margin-top: 15px; color: #a9c4ff; font-size: .84rem; font-weight: 650; }
+    footer { margin-top: 28px; text-align: center; color: #71839d; font-size: .75rem; }
+    @media (max-width: 560px) {
+      .games { grid-template-columns: 1fr; }
+      .game-card { min-height: 235px; }
+      .art { min-height: 115px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <p class="eyebrow">WELCOME TO</p>
+      <h1>GAME CENTER</h1>
+      <p class="subtitle">選擇一款遊戲開始</p>
+    </header>
+    <section class="games" aria-label="遊戲選擇">
+      <a class="game-card" href="/guess">
+        <div class="art" aria-hidden="true">
+          <div class="number-art"><span>1</span><span>?</span><span>100</span></div>
+        </div>
+        <div class="game-title">猜數字</div>
+        <div class="game-en">NUMBER GUESSING</div>
+        <div class="open-label">立即開始　→</div>
+      </a>
+      <a class="game-card" href="/checkers">
+        <div class="art" aria-hidden="true">
+          <div class="mini-board">
+            <div class="square dark"><i class="piece red"></i></div><div class="square"></div><div class="square dark"><i class="piece red"></i></div><div class="square"></div>
+            <div class="square"><i class="piece red"></i></div><div class="square dark"></div><div class="square"><i class="piece red"></i></div><div class="square dark"></div>
+            <div class="square dark"></div><div class="square"><i class="piece blue"></i></div><div class="square dark"></div><div class="square"><i class="piece blue"></i></div>
+            <div class="square"><i class="piece blue"></i></div><div class="square dark"></div><div class="square"><i class="piece blue"></i></div><div class="square dark"></div>
+          </div>
+        </div>
+        <div class="game-title">跳棋</div>
+        <div class="game-en">CHECKERS</div>
+        <div class="open-label">立即開始　→</div>
+      </a>
+    </section>
+    <footer>ONE WEBSITE · MULTIPLE GAMES</footer>
+  </main>
+</body>
+</html>
