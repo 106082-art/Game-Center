@@ -109,12 +109,34 @@
       </aside>
     </section>
 
+    <section class="checkers-leaderboard" aria-labelledby="checkers-leaderboard-title">
+      <div class="checkers-leaderboard-heading">
+        <div>
+          <p class="eyebrow">CHECKERS / BEST RUNS</p>
+          <h2 id="checkers-leaderboard-title">跳棋排行榜</h2>
+          <p>依完成時間排序；同時間以藍方步數較少者優先。每位玩家只顯示最佳成績。</p>
+        </div>
+        <button class="leaderboard-refresh" id="refresh-checkers-leaderboard" type="button">重新整理</button>
+      </div>
+      <p class="checkers-leaderboard-status" id="checkers-leaderboard-status" aria-live="polite">排行榜載入中…</p>
+      <div class="checkers-leaderboard-scroll" role="region" aria-label="跳棋前 50 名，可捲動" tabindex="0">
+        <table class="checkers-leaderboard-table">
+          <thead>
+            <tr><th scope="col">名次</th><th scope="col">玩家</th><th scope="col">完成時間</th><th scope="col">藍方步數</th></tr>
+          </thead>
+          <tbody id="checkers-leaderboard-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="view end-wrap" id="end-view" hidden aria-labelledby="end-title">
       <div class="end-card">
         <p class="eyebrow">MATCH COMPLETE</p>
         <h2 id="end-title">棋局結束</h2>
         <p class="end-copy" id="end-copy"></p>
         <div class="end-score">藍棋完成回合 <strong id="end-steps">0</strong></div>
+        <div class="end-score">完成時間 <strong id="end-time">00:00.000</strong></div>
+        <p class="end-score-status" id="end-score-status" role="status" aria-live="polite"></p>
         <div class="setup-actions" style="margin-top:22px">
           <button class="action-button primary" id="play-again" type="button"><span class="button-icon" aria-hidden="true">↻</span>再下一局</button>
           <button class="action-button secondary" id="end-back" type="button">回到對局選單</button>

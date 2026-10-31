@@ -96,6 +96,7 @@ function emptyState() {
   const second = Engine.playRedMove(state, secondJump);
   assert.equal(second.chain, undefined);
   assert.equal(state.turn, "blue");
+  assert.equal(state.blueSteps, 0, "Red Bot moves do not increment Blue's step count.");
 }
 
 // Promotion and backward movement for a crowned piece.

@@ -600,6 +600,125 @@ kbd {
 }
 .end-score strong { color: var(--sun); font-family: var(--font-mono); }
 
+.end-score-status {
+  min-height: 20px;
+  margin: 4px 0 0;
+  color: #a8c9fa;
+  font-size: 11px;
+}
+
+.checkers-leaderboard {
+  margin-top: 24px;
+  padding: clamp(17px, 2.5vw, 27px);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(31, 48, 68, .96), rgba(23, 37, 54, .98));
+  box-shadow: 0 22px 60px rgba(0, 0, 0, .2);
+}
+
+.checkers-leaderboard-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.checkers-leaderboard-heading .eyebrow { margin-bottom: 7px; }
+.checkers-leaderboard-heading h2 {
+  margin: 0;
+  font-size: clamp(21px, 3vw, 28px);
+  letter-spacing: -.04em;
+}
+.checkers-leaderboard-heading p:last-child {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.leaderboard-refresh {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .04);
+  color: #dce5ef;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.leaderboard-refresh:hover { background: rgba(255, 255, 255, .09); }
+
+.checkers-leaderboard-status {
+  margin: 0;
+  padding: 12px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.checkers-leaderboard-scroll {
+  max-height: 390px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 13px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(242, 206, 104, .5) rgba(255, 255, 255, .04);
+}
+
+.checkers-leaderboard-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.checkers-leaderboard-table th,
+.checkers-leaderboard-table td {
+  padding: 10px 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+}
+
+.checkers-leaderboard-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #1c2b3c;
+  color: #9eafc1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+}
+
+.checkers-leaderboard-table td { color: #dce5ef; }
+.checkers-leaderboard-table tbody tr:nth-child(even) { background: rgba(255, 255, 255, .025); }
+.checkers-leaderboard-table tbody tr:last-child td { border-bottom: 0; }
+.checkers-leaderboard-table td:first-child {
+  width: 62px;
+  color: var(--sun);
+  font-family: var(--font-mono);
+}
+.checkers-leaderboard-table td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.checkers-leaderboard-table td:nth-child(3),
+.checkers-leaderboard-table td:nth-child(4) {
+  color: #a8c9fa;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.checkers-leaderboard-table th:nth-child(3),
+.checkers-leaderboard-table td:nth-child(3) { width: 112px; }
+.checkers-leaderboard-table th:nth-child(4),
+.checkers-leaderboard-table td:nth-child(4) { width: 96px; }
+
 .site-footer {
   display: flex;
   justify-content: space-between;
@@ -646,6 +765,18 @@ kbd {
   .keyboard-guide { margin-top: 12px; }
   .setup-wrap, .end-wrap { min-height: calc(100dvh - 155px); }
   .site-footer { font-size: 8px; }
+  .checkers-leaderboard { margin-top: 17px; padding: 15px; border-radius: 18px; }
+  .checkers-leaderboard-heading { align-items: flex-start; }
+  .checkers-leaderboard-heading p:last-child { max-width: 280px; }
+  .checkers-leaderboard-scroll { max-height: 330px; }
+  .checkers-leaderboard-table { font-size: 10px; }
+  .checkers-leaderboard-table th,
+  .checkers-leaderboard-table td { padding: 9px 7px; }
+  .checkers-leaderboard-table td:first-child { width: 42px; }
+  .checkers-leaderboard-table th:nth-child(3),
+  .checkers-leaderboard-table td:nth-child(3) { width: 92px; }
+  .checkers-leaderboard-table th:nth-child(4),
+  .checkers-leaderboard-table td:nth-child(4) { width: 78px; }
 }
 
 @media (max-width: 390px) {
@@ -656,6 +787,7 @@ kbd {
   .turn-chip { padding: 0 8px; font-size: 10px; }
   .board-foot { align-items: flex-start; flex-direction: column; }
   .setup-actions { flex-direction: column; }
+  .checkers-leaderboard-heading { flex-direction: column; }
 }
 
 @media (prefers-reduced-motion: reduce) {

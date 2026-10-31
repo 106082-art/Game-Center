@@ -1,0 +1,1 @@
+- [Game Center data boundaries](game-center-data-boundaries.md) — keep guess and checkers leaderboards separate, identify checkers players by session, and never delete score history.

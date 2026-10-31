@@ -1,5 +1,6 @@
-import os
+import hashlib
 import math
+import os
 import random
 import secrets
 import threading
@@ -153,6 +154,30 @@ def db_connection():
                         )
                     """)
 
+                    # 跳棋排行榜獨立於猜數字的 leaderboard。
+                    # 每個 session player_id 僅保留一筆目前最佳成績。
+                    conn.execute("""
+                        CREATE TABLE IF NOT EXISTS checkers_leaderboard (
+                            id BIGSERIAL PRIMARY KEY,
+                            player_id TEXT NOT NULL UNIQUE,
+                            time_taken_ms INTEGER NOT NULL
+                                CHECK (time_taken_ms >= 0),
+                            blue_steps INTEGER NOT NULL
+                                CHECK (blue_steps > 0),
+                            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                        )
+                    """)
+
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS checkers_leaderboard_ranking_idx
+                        ON checkers_leaderboard (
+                            time_taken_ms,
+                            blue_steps,
+                            created_at,
+                            id
+                        )
+                    """)
+
                     conn.commit()
                     _schema_ready = True
 
@@ -288,6 +313,36 @@ def get_leaderboard(level):
             "created_at": row["created_at"].isoformat(),
         }
         for row in rows
+    ]
+
+
+def get_checkers_leaderboard():
+    """回傳跳棋前 50 名，不公開 session player_id。"""
+    with db_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT player_id, time_taken_ms, blue_steps, created_at
+            FROM checkers_leaderboard
+            ORDER BY
+                time_taken_ms ASC,
+                blue_steps ASC,
+                created_at ASC,
+                id ASC
+            LIMIT 50
+            """
+        ).fetchall()
+
+    return [
+        {
+            "rank": rank,
+            "player": (
+                "玩家-" + hashlib.sha256(row["player_id"].encode()).hexdigest()[:8]
+            ),
+            "time_taken_ms": row["time_taken_ms"],
+            "blue_steps": row["blue_steps"],
+            "created_at": row["created_at"].isoformat(),
+        }
+        for rank, row in enumerate(rows, start=1)
     ]
 
 
@@ -667,6 +722,104 @@ def submit_score():
     except Exception:
         app.logger.exception("Could not save leaderboard score")
         return jsonify({"error": "Could not save score right now"}), 503
+
+
+@app.route("/api/checkers/leaderboard", methods=["GET"])
+def checkers_leaderboard():
+    try:
+        return jsonify(get_checkers_leaderboard())
+    except Exception:
+        app.logger.exception("Could not load checkers leaderboard")
+        return jsonify(
+            {"error": "Checkers leaderboard is temporarily unavailable"}
+        ), 503
+
+
+@app.route("/api/checkers/score", methods=["POST"])
+def submit_checkers_score():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object"}), 400
+
+    if data.get("winner") != "blue":
+        return jsonify({"error": "Only a Blue win can be submitted"}), 400
+
+    time_taken_ms = parse_integer(data.get("time_taken_ms"))
+    blue_steps = parse_integer(data.get("blue_steps"))
+
+    if time_taken_ms is None or not 0 <= time_taken_ms <= 86_400_000:
+        return jsonify({"error": "Invalid completion time"}), 400
+
+    if blue_steps is None or not 1 <= blue_steps <= 1_000_000:
+        return jsonify({"error": "Invalid Blue move count"}), 400
+
+    player_id = get_player_id()
+
+    try:
+        with db_connection() as conn:
+            saved = conn.execute(
+                """
+                INSERT INTO checkers_leaderboard (
+                    player_id, time_taken_ms, blue_steps
+                )
+                VALUES (%s, %s, %s)
+                ON CONFLICT (player_id) DO UPDATE
+                SET time_taken_ms = EXCLUDED.time_taken_ms,
+                    blue_steps = EXCLUDED.blue_steps,
+                    created_at = NOW()
+                WHERE EXCLUDED.time_taken_ms < checkers_leaderboard.time_taken_ms
+                   OR (
+                       EXCLUDED.time_taken_ms = checkers_leaderboard.time_taken_ms
+                       AND EXCLUDED.blue_steps < checkers_leaderboard.blue_steps
+                   )
+                RETURNING id
+                """,
+                (player_id, time_taken_ms, blue_steps),
+            ).fetchone()
+
+            current = conn.execute(
+                """
+                WITH ranked_players AS (
+                    SELECT
+                        player_id,
+                        time_taken_ms,
+                        blue_steps,
+                        ROW_NUMBER() OVER (
+                            ORDER BY
+                                time_taken_ms ASC,
+                                blue_steps ASC,
+                                created_at ASC,
+                                id ASC
+                        ) AS rank
+                    FROM checkers_leaderboard
+                )
+                SELECT rank, time_taken_ms, blue_steps
+                FROM ranked_players
+                WHERE player_id = %s
+                """,
+                (player_id,),
+            ).fetchone()
+
+        return jsonify(
+            {
+                "ok": True,
+                "updated": saved is not None,
+                "rank": current["rank"] if current else None,
+                "best": (
+                    {
+                        "time_taken_ms": current["time_taken_ms"],
+                        "blue_steps": current["blue_steps"],
+                    }
+                    if current
+                    else None
+                ),
+            }
+        ), 201
+
+    except Exception:
+        app.logger.exception("Could not save checkers score")
+        return jsonify({"error": "Could not save checkers score right now"}), 503
 
 
 if __name__ == "__main__":

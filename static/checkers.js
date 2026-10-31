@@ -10,11 +10,10 @@
   const stateRef = { current: null };
   const botTimer = { current: null };
   let botTurnToken = 0;
+  let gameStartedAt = null;
   const keyByPosition = new Map();
-  const selectedMoves = [];
 
   const positionKey = (row, col) => `${row},${col}`;
-  const samePosition = (a, b) => Boolean(a && b && a[0] === b[0] && a[1] === b[1]);
 
   function setupBlueKeyLookup(state) {
     keyByPosition.clear();
@@ -142,6 +141,112 @@
     updateStatus(message);
   }
 
+  function formatTime(milliseconds) {
+    const totalSeconds = Math.max(0, Number(milliseconds) || 0) / 1000;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = (totalSeconds % 60).toFixed(3).padStart(6, "0");
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, "0")}:${seconds}`;
+    }
+    return `${String(minutes).padStart(2, "0")}:${seconds}`;
+  }
+
+  function createLeaderboardCell(value, className) {
+    const cell = document.createElement("td");
+    if (className) cell.className = className;
+    cell.textContent = String(value);
+    return cell;
+  }
+
+  async function loadCheckersLeaderboard() {
+    const status = $("checkers-leaderboard-status");
+    const rowsElement = $("checkers-leaderboard-rows");
+    status.textContent = "排行榜載入中…";
+
+    try {
+      const response = await fetch("/api/checkers/leaderboard", {
+        headers: { Accept: "application/json" },
+        credentials: "same-origin"
+      });
+      const data = await response.json();
+      if (!response.ok || !Array.isArray(data)) {
+        throw new Error(data.error || "Leaderboard request failed");
+      }
+
+      const fragment = document.createDocumentFragment();
+      data.forEach((entry, index) => {
+        const row = document.createElement("tr");
+        row.append(
+          createLeaderboardCell(entry.rank || index + 1),
+          createLeaderboardCell(entry.player || "玩家"),
+          createLeaderboardCell(formatTime(entry.time_taken_ms)),
+          createLeaderboardCell(entry.blue_steps)
+        );
+        fragment.append(row);
+      });
+
+      if (data.length === 0) {
+        const row = document.createElement("tr");
+        const cell = createLeaderboardCell("目前還沒有跳棋成績。");
+        cell.colSpan = 4;
+        cell.className = "checkers-leaderboard-empty";
+        row.append(cell);
+        fragment.append(row);
+      }
+
+      rowsElement.replaceChildren(fragment);
+      status.textContent = data.length
+        ? `顯示前 ${Math.min(data.length, 50)} 名，共 ${data.length} 筆成績。`
+        : "第一筆勝利成績會顯示在這裡。";
+    } catch (error) {
+      rowsElement.replaceChildren();
+      status.textContent = "排行榜暫時無法載入，請稍後再試。";
+    }
+  }
+
+  async function submitBlueWin(state, timeTakenMs) {
+    const status = $("end-score-status");
+    status.textContent = "成績提交中…";
+
+    try {
+      const response = await fetch("/api/checkers/score", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          winner: "blue",
+          time_taken_ms: timeTakenMs,
+          blue_steps: state.blueSteps
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Score submission failed");
+      }
+
+      if (stateRef.current === state) {
+        if (data.updated) {
+          status.textContent = data.rank <= 50
+            ? `已更新個人最佳，排行榜第 ${data.rank} 名。`
+            : `已更新個人最佳，目前第 ${data.rank} 名；榜單顯示前 50 名。`;
+        } else {
+          status.textContent = data.rank <= 50
+            ? `本局未刷新個人最佳，目前第 ${data.rank} 名。`
+            : `本局未刷新個人最佳；榜單顯示前 50 名。`;
+        }
+      }
+      await loadCheckersLeaderboard();
+    } catch (error) {
+      if (stateRef.current === state) {
+        status.textContent = "成績提交失敗；本局結果仍保留在畫面上。";
+      }
+    }
+  }
+
   function finishIfNeeded() {
     const state = stateRef.current;
     Engine.detectGameOver(state);
@@ -149,12 +254,28 @@
       cancelBot();
       render();
       const blueWon = state.winner === "blue";
+      if (state.finalTimeMs === undefined) {
+        state.finalTimeMs = Math.max(
+          0,
+          Math.round(window.performance.now() - gameStartedAt)
+        );
+      }
       $("end-title").textContent = blueWon ? "藍棋勝出" : "紅棋勝出";
       $("end-copy").textContent = blueWon
         ? "紅棋已經沒有棋子或合法步數。棋盤上的最後一手，屬於你。"
         : "藍棋已經沒有棋子或合法步數。紅棋守住了棋局。";
       $("end-steps").textContent = String(state.blueSteps);
-      window.setTimeout(() => showView("end"), 380);
+      $("end-time").textContent = formatTime(state.finalTimeMs);
+      if (blueWon && !state.scoreSubmissionStarted) {
+        state.scoreSubmissionStarted = true;
+        submitBlueWin(state, state.finalTimeMs);
+      } else if (!blueWon) {
+        $("end-score-status").textContent = "紅棋獲勝；敗北成績不會提交排行榜。";
+      }
+      if (!state.endViewScheduled) {
+        state.endViewScheduled = true;
+        window.setTimeout(() => showView("end"), 380);
+      }
       return true;
     }
     return false;
@@ -223,6 +344,9 @@
   function startGame() {
     cancelBot();
     stateRef.current = Engine.createInitialState();
+    gameStartedAt = window.performance.now();
+    $("end-time").textContent = "00:00.000";
+    $("end-score-status").textContent = "";
     setupBlueKeyLookup(stateRef.current);
     setNotice("棋局開始。藍棋先行。", "good");
     showView("game");
@@ -257,5 +381,7 @@
   $("back-to-setup").addEventListener("click", returnToSetup);
   $("play-again").addEventListener("click", startGame);
   $("end-back").addEventListener("click", returnToSetup);
+  $("refresh-checkers-leaderboard").addEventListener("click", loadCheckersLeaderboard);
   window.addEventListener("keydown", onKeyDown);
+  loadCheckersLeaderboard();
 })();
