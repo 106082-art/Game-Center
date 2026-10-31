@@ -35,12 +35,52 @@
             <div class="mini-square"><span class="mini-piece blue"></span></div><div class="mini-square dark"></div><div class="mini-square"><span class="mini-piece blue"></span></div><div class="mini-square dark"></div>
           </div>
         </div>
+
         <p class="eyebrow">BLUE PLAYS FIRST</p>
         <h2 id="setup-title">先走一步，棋局開始。</h2>
         <p class="setup-copy">8 × 8 棋盤，十二枚藍棋對上十二枚紅棋。藍棋由你操作，紅棋交給隨機策略的電腦。</p>
-        <div class="setup-meta"><span>8 × 8 棋盤</span><span>藍棋先行</span><span>紅棋電腦</span></div>
+
+        <div class="checkers-profile" style="max-width:360px;margin:24px auto 0;text-align:left">
+          <label for="checkers-username" style="display:block;margin-bottom:9px;font-weight:700">
+            玩家暱稱
+          </label>
+
+          <input
+            id="checkers-username"
+            type="text"
+            maxlength="80"
+            autocomplete="nickname"
+            placeholder="請輸入你的暱稱"
+            style="display:block;width:100%;box-sizing:border-box;padding:13px 14px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:#fff;color:#101a29"
+          >
+
+          <button
+            class="action-button secondary"
+            id="save-checkers-username"
+            type="button"
+            style="width:100%;margin-top:10px;justify-content:center"
+          >
+            儲存暱稱
+          </button>
+
+          <p
+            id="checkers-profile-hint"
+            role="status"
+            aria-live="polite"
+            style="margin:9px 0 0;font-size:13px;line-height:1.6;opacity:.8"
+          >正在載入暱稱…</p>
+        </div>
+
+        <div class="setup-meta">
+          <span>8 × 8 棋盤</span>
+          <span>藍棋先行</span>
+          <span>紅棋電腦</span>
+        </div>
+
         <div class="setup-actions">
-          <button class="action-button primary" id="start-game" type="button"><span class="button-icon" aria-hidden="true">＋</span>開始對局</button>
+          <button class="action-button primary" id="start-game" type="button" disabled>
+            <span class="button-icon" aria-hidden="true">＋</span>開始對局
+          </button>
           <a class="action-button secondary" href="/">回到遊戲中心</a>
         </div>
       </div>
@@ -52,10 +92,12 @@
           <span class="board-label">第 <span id="turn-number">01</span> 手</span>
           <span class="turn-chip" id="turn-chip" aria-live="polite"><span class="turn-dot" aria-hidden="true"></span><span id="turn-label">藍棋回合</span></span>
         </div>
+
         <div class="board-frame">
           <div class="checker-board" id="checker-board" role="grid" aria-label="8 乘 8 西洋跳棋棋盤"></div>
           <div class="board-coordinates" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span></div>
         </div>
+
         <div class="board-foot">
           <span>點選棋子，再選擇斜向空格</span>
           <span class="legend" aria-label="棋子顏色圖例">
@@ -71,6 +113,7 @@
           <h2 class="status-title" id="status-title">輪到你走棋</h2>
           <p class="status-copy" id="status-copy" aria-live="polite">選擇一枚藍棋，再點擊斜向的空格。</p>
         </div>
+
         <div class="piece-counts">
           <div class="count-card red">
             <div class="count-card-top"><i class="legend-dot red"></i>紅棋・電腦</div>
@@ -81,12 +124,14 @@
             <strong class="count-value" id="blue-count">12</strong>
           </div>
         </div>
+
         <div class="steps-card"><span>藍棋完成回合</span><strong id="blue-steps">00</strong></div>
 
         <div class="action-stack">
           <button class="action-button primary" id="restart-game" type="button"><span class="button-icon" aria-hidden="true">↻</span>重新開始</button>
           <button class="action-button secondary" id="back-to-setup" type="button"><span class="button-icon" aria-hidden="true">←</span>回到對局選單</button>
         </div>
+
         <p class="notice" id="game-notice" role="status" aria-live="polite"></p>
 
         <details class="rule-details">
@@ -95,10 +140,11 @@
             <li><strong>兵棋</strong>只能向前斜走或向前跳吃；到達底線升為國王。</li>
             <li><strong>國王</strong>可向四個斜向移動與跳吃。</li>
             <li>紅棋有可吃棋步時會優先跳吃，並自動完成同一枚棋子的連吃。</li>
-            <li>滑鼠或觸控連吃會鎖定同一枚藍棋；鍵盤仍可改選其他藍棋，也可點擊遠處空格結束連吃回合。</li>
+            <li>滑鼠或觸控連吃會鎖定同一枚藍棋；鍵盤仍可改選其他藍棋，也可點擊遠處空格結束連吃。</li>
             <li>點選藍棋上的小字母，再按方向鍵可用鍵盤操作。</li>
           </ul>
         </details>
+
         <div class="keyboard-guide" aria-label="鍵盤操作說明">
           <p class="keyboard-title">鍵盤操作</p>
           <div class="key-groups">
@@ -118,7 +164,9 @@
         </div>
         <button class="leaderboard-refresh" id="refresh-checkers-leaderboard" type="button">重新整理</button>
       </div>
+
       <p class="checkers-leaderboard-status" id="checkers-leaderboard-status" aria-live="polite">排行榜載入中…</p>
+
       <div class="checkers-leaderboard-scroll" role="region" aria-label="跳棋前 50 名，可捲動" tabindex="0">
         <table class="checkers-leaderboard-table">
           <thead>
@@ -149,5 +197,137 @@
 
   <script src="{{ url_for('static', filename='checkers-engine.js') }}" defer></script>
   <script src="{{ url_for('static', filename='checkers.js') }}" defer></script>
+
+  <script>
+    (() => {
+      const input = document.getElementById('checkers-username');
+      const saveButton = document.getElementById('save-checkers-username');
+      const startButton = document.getElementById('start-game');
+      const hint = document.getElementById('checkers-profile-hint');
+
+      let savedUsername = '';
+      let saving = false;
+
+      function setHint(message, success = false) {
+        hint.textContent = message;
+        hint.style.color = success ? '#15803d' : '';
+      }
+
+      function updateStartButton() {
+        const currentUsername = input.value.trim();
+        startButton.disabled =
+          !savedUsername ||
+          currentUsername !== savedUsername ||
+          saving;
+      }
+
+      async function loadProfile() {
+        try {
+          const response = await fetch('/api/profile', {
+            method: 'GET',
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin'
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || '無法讀取玩家資料');
+          }
+
+          if (typeof data.username === 'string' && data.username.trim()) {
+            savedUsername = data.username.trim();
+            input.value = savedUsername;
+            setHint('已載入共用暱稱：「' + savedUsername + '」', true);
+          } else {
+            savedUsername = '';
+            input.value = '';
+            setHint('尚未設定暱稱，請輸入名稱並按下儲存。');
+          }
+        } catch (error) {
+          savedUsername = '';
+          input.value = '';
+          setHint('目前沒有載入暱稱，請輸入名稱並按下儲存。');
+        }
+
+        updateStartButton();
+      }
+
+      async function saveProfile() {
+        const username = input.value.trim();
+
+        if (!username) {
+          setHint('請先輸入暱稱。');
+          input.focus();
+          return;
+        }
+
+        if (username.length > 80) {
+          setHint('暱稱最多 80 個字元。');
+          return;
+        }
+
+        if (saving) return;
+
+        saving = true;
+        saveButton.disabled = true;
+        saveButton.textContent = '儲存中…';
+        updateStartButton();
+        setHint('正在儲存暱稱…');
+
+        try {
+          const response = await fetch('/api/profile', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ username })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || '暱稱儲存失敗');
+          }
+
+          savedUsername = data.username || username;
+          input.value = savedUsername;
+
+          setHint('暱稱已儲存：「' + savedUsername + '」。兩款遊戲共用此暱稱。', true);
+        } catch (error) {
+          savedUsername = '';
+          setHint('儲存失敗：' + error.message);
+        } finally {
+          saving = false;
+          saveButton.disabled = false;
+          saveButton.textContent = '儲存暱稱';
+          updateStartButton();
+        }
+      }
+
+      input.addEventListener('input', () => {
+        if (input.value.trim() !== savedUsername) {
+          setHint('暱稱已修改，請按下「儲存暱稱」才會生效。');
+        } else if (savedUsername) {
+          setHint('目前使用共用暱稱：「' + savedUsername + '」。', true);
+        }
+
+        updateStartButton();
+      });
+
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          saveProfile();
+        }
+      });
+
+      saveButton.addEventListener('click', saveProfile);
+
+      loadProfile();
+    })();
+  </script>
 </body>
 </html>

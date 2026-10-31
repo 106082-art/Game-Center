@@ -12,6 +12,10 @@ from flask import Flask, render_template, request, jsonify, session
 
 app = Flask(__name__)
 
+# 讓 Flask 自動重新載入修改過的 HTML 模板
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.jinja_env.auto_reload = True
+
 app.secret_key = os.environ.get(
     "SESSION_SECRET",
     "guess-number-secret-change-this",
@@ -112,8 +116,6 @@ def db_connection():
         if not _schema_ready:
             with _schema_lock:
                 if not _schema_ready:
-                    # 個人最佳紀錄：每位玩家、每個難度各自一筆。
-                    # 不使用全球排行榜資料來儲存個人紀錄。
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS personal_best_scores (
                             player_id TEXT NOT NULL,
@@ -126,7 +128,6 @@ def db_connection():
                         )
                     """)
 
-                    # 全球排行榜仍然獨立保存。
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS leaderboard (
                             id BIGSERIAL PRIMARY KEY,
@@ -154,18 +155,23 @@ def db_connection():
                         )
                     """)
 
-                    # 跳棋排行榜獨立於猜數字的 leaderboard。
-                    # 每個 session player_id 僅保留一筆目前最佳成績。
                     conn.execute("""
                         CREATE TABLE IF NOT EXISTS checkers_leaderboard (
                             id BIGSERIAL PRIMARY KEY,
                             player_id TEXT NOT NULL UNIQUE,
+                            username VARCHAR(80) NOT NULL DEFAULT '玩家',
                             time_taken_ms INTEGER NOT NULL
                                 CHECK (time_taken_ms >= 0),
                             blue_steps INTEGER NOT NULL
                                 CHECK (blue_steps > 0),
                             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
                         )
+                    """)
+
+                    conn.execute("""
+                        ALTER TABLE checkers_leaderboard
+                        ADD COLUMN IF NOT EXISTS username VARCHAR(80)
+                        NOT NULL DEFAULT '玩家'
                     """)
 
                     conn.execute("""
@@ -226,7 +232,6 @@ def save_best(player_id, level, attempts):
     回傳 (是否創下新紀錄, 更新後的最佳猜測次數)。
     """
     with db_connection() as conn:
-        # 同一玩家同一難度的更新依序處理，避免同時提交造成誤判。
         conn.execute(
             "SELECT pg_advisory_xact_lock(hashtext(%s), %s)",
             (player_id, level),
@@ -321,7 +326,7 @@ def get_checkers_leaderboard():
     with db_connection() as conn:
         rows = conn.execute(
             """
-            SELECT player_id, time_taken_ms, blue_steps, created_at
+            SELECT username, time_taken_ms, blue_steps, created_at
             FROM checkers_leaderboard
             ORDER BY
                 time_taken_ms ASC,
@@ -335,9 +340,8 @@ def get_checkers_leaderboard():
     return [
         {
             "rank": rank,
-            "player": (
-                "玩家-" + hashlib.sha256(row["player_id"].encode()).hexdigest()[:8]
-            ),
+            "player": row["username"],
+            "username": row["username"],
             "time_taken_ms": row["time_taken_ms"],
             "blue_steps": row["blue_steps"],
             "created_at": row["created_at"].isoformat(),
@@ -364,6 +368,29 @@ def checkers_game():
 @app.route("/favicon.ico")
 def favicon():
     return "", 204
+
+
+@app.route("/api/profile", methods=["GET", "POST"])
+def profile():
+    """讀取或更新兩款遊戲共用的玩家暱稱。"""
+    if request.method == "GET":
+        return jsonify({"username": session.get("username", "")})
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object"}), 400
+
+    username = data.get("username")
+    if not isinstance(username, str):
+        return jsonify({"error": "Username is required"}), 400
+
+    username = username.strip()
+    if not username or len(username) > MAX_USERNAME_LENGTH:
+        return jsonify({"error": "暱稱不可空白，且最多 80 個字元。"}), 400
+
+    session["username"] = username
+    get_player_id()
+    return jsonify({"ok": True, "username": username})
 
 
 @app.route("/api/start", methods=["POST"])
@@ -401,7 +428,6 @@ def start():
             }
         ), 400
 
-    # 確保目前玩家有自己的 session ID。
     get_player_id()
 
     session["num"] = random.randint(min_val, max_val)
@@ -479,7 +505,6 @@ def guess():
                     difficulty,
                 )
 
-                # 即使資料庫暫時無法更新，也盡量回傳現有最佳紀錄。
                 try:
                     best = load_best(player_id, difficulty)
                 except Exception:
@@ -579,17 +604,20 @@ def submit_score():
     if not isinstance(data, dict):
         return jsonify({"error": "Request body must be a JSON object"}), 400
 
-    username = data.get("username")
+    username = session.get("username")
+    if not isinstance(username, str) or not username.strip():
+        username = data.get("username")
+        if not isinstance(username, str):
+            return jsonify({"error": "Username is required"}), 400
+        username = username.strip()
+        if not username or len(username) > MAX_USERNAME_LENGTH:
+            return jsonify({"error": "Invalid username"}), 400
+        session["username"] = username
+    else:
+        username = username.strip()
+
     level = parse_integer(data.get("level"))
     attempts = parse_integer(data.get("attempts"))
-
-    if not isinstance(username, str):
-        return jsonify({"error": "Username is required"}), 400
-
-    username = username.strip()
-
-    if not username or len(username) > MAX_USERNAME_LENGTH:
-        return jsonify({"error": "Invalid username"}), 400
 
     if level not in SUPPORTED_LEVELS:
         return jsonify({"error": "Invalid level"}), 400
@@ -607,7 +635,6 @@ def submit_score():
 
     try:
         with db_connection() as conn:
-            # 同一難度的排行榜更新依序處理。
             conn.execute(
                 "SELECT pg_advisory_xact_lock(%s)",
                 (level,),
@@ -745,6 +772,13 @@ def submit_checkers_score():
     if data.get("winner") != "blue":
         return jsonify({"error": "Only a Blue win can be submitted"}), 400
 
+    username = session.get("username")
+    if not isinstance(username, str) or not username.strip():
+        return jsonify(
+            {"error": "請先設定共用暱稱，再提交跳棋成績。"}
+        ), 400
+    username = username.strip()
+
     time_taken_ms = parse_integer(data.get("time_taken_ms"))
     blue_steps = parse_integer(data.get("blue_steps"))
 
@@ -758,25 +792,59 @@ def submit_checkers_score():
 
     try:
         with db_connection() as conn:
-            saved = conn.execute(
+            conn.execute(
+                "SELECT pg_advisory_xact_lock(hashtext(%s))",
+                (player_id,),
+            )
+            existing = conn.execute(
                 """
-                INSERT INTO checkers_leaderboard (
-                    player_id, time_taken_ms, blue_steps
-                )
-                VALUES (%s, %s, %s)
-                ON CONFLICT (player_id) DO UPDATE
-                SET time_taken_ms = EXCLUDED.time_taken_ms,
-                    blue_steps = EXCLUDED.blue_steps,
-                    created_at = NOW()
-                WHERE EXCLUDED.time_taken_ms < checkers_leaderboard.time_taken_ms
-                   OR (
-                       EXCLUDED.time_taken_ms = checkers_leaderboard.time_taken_ms
-                       AND EXCLUDED.blue_steps < checkers_leaderboard.blue_steps
-                   )
-                RETURNING id
+                SELECT time_taken_ms, blue_steps
+                FROM checkers_leaderboard
+                WHERE player_id = %s
+                FOR UPDATE
                 """,
-                (player_id, time_taken_ms, blue_steps),
+                (player_id,),
             ).fetchone()
+
+            improved = existing is None or (
+                time_taken_ms < existing["time_taken_ms"]
+                or (
+                    time_taken_ms == existing["time_taken_ms"]
+                    and blue_steps < existing["blue_steps"]
+                )
+            )
+
+            if existing is None:
+                conn.execute(
+                    """
+                    INSERT INTO checkers_leaderboard (
+                        player_id, username, time_taken_ms, blue_steps
+                    )
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (player_id, username, time_taken_ms, blue_steps),
+                )
+            elif improved:
+                conn.execute(
+                    """
+                    UPDATE checkers_leaderboard
+                    SET username = %s,
+                        time_taken_ms = %s,
+                        blue_steps = %s,
+                        created_at = NOW()
+                    WHERE player_id = %s
+                    """,
+                    (username, time_taken_ms, blue_steps, player_id),
+                )
+            else:
+                conn.execute(
+                    """
+                    UPDATE checkers_leaderboard
+                    SET username = %s
+                    WHERE player_id = %s
+                    """,
+                    (username, player_id),
+                )
 
             current = conn.execute(
                 """
@@ -804,7 +872,7 @@ def submit_checkers_score():
         return jsonify(
             {
                 "ok": True,
-                "updated": saved is not None,
+                "updated": improved,
                 "rank": current["rank"] if current else None,
                 "best": (
                     {

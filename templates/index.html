@@ -677,7 +677,7 @@
     startGame(min, max, 'casual', 0);
   }
 
-  function startCompetitive(max) {
+  async function startCompetitive(max) {
     const usernameInput = document.getElementById('competitive-username');
     const error = document.getElementById('competitive-err');
 
@@ -690,7 +690,41 @@
     }
 
     error.textContent = '';
-    startGame(1, max, 'competitive', max);
+
+    try {
+      const profileResponse = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUsername })
+      });
+      const profileData = await profileResponse.json();
+      if (!profileResponse.ok || profileData.error) {
+        throw new Error(profileData.error || 'Could not save nickname.');
+      }
+      currentUsername = profileData.username;
+      usernameInput.value = currentUsername;
+      await startGame(1, max, 'competitive', max);
+    } catch (error) {
+      document.getElementById('competitive-err').textContent =
+        error.message || 'Could not save nickname. Please try again.';
+    }
+  }
+
+  async function loadSharedProfile() {
+    const usernameInput = document.getElementById('competitive-username');
+    try {
+      const response = await fetch('/api/profile', {
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (typeof data.username === 'string') {
+        currentUsername = data.username;
+        usernameInput.value = data.username;
+      }
+    } catch (error) {
+      // The nickname can still be entered manually if profile loading fails.
+    }
   }
 
   async function saveCompetitiveScore(attempts) {
@@ -805,6 +839,7 @@
   }
 
   // Init
+  loadSharedProfile();
   loadScores();
   loadLeaderboard();
 </script>
