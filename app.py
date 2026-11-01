@@ -337,8 +337,26 @@ def get_checkers_leaderboard():
     with db_connection() as conn:
         rows = conn.execute(
             """
+            WITH ranked_names AS (
+                SELECT
+                    username,
+                    time_taken_ms,
+                    blue_steps,
+                    created_at,
+                    id,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY LOWER(BTRIM(username))
+                        ORDER BY
+                            blue_steps ASC,
+                            time_taken_ms ASC,
+                            created_at ASC,
+                            id ASC
+                    ) AS name_rank
+                FROM checkers_leaderboard
+            )
             SELECT username, time_taken_ms, blue_steps, created_at
-            FROM checkers_leaderboard
+            FROM ranked_names
+            WHERE name_rank = 1
             ORDER BY
                 blue_steps ASC,
                 time_taken_ms ASC,
@@ -860,9 +878,26 @@ def submit_checkers_score():
 
             current = conn.execute(
                 """
-                WITH ranked_players AS (
+                WITH best_per_name AS (
                     SELECT
-                        player_id,
+                        id,
+                        LOWER(BTRIM(username)) AS normalized_username,
+                        time_taken_ms,
+                        blue_steps,
+                        created_at,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY LOWER(BTRIM(username))
+                            ORDER BY
+                                blue_steps ASC,
+                                time_taken_ms ASC,
+                                created_at ASC,
+                                id ASC
+                        ) AS name_rank
+                    FROM checkers_leaderboard
+                ),
+                ranked_names AS (
+                    SELECT
+                        normalized_username,
                         time_taken_ms,
                         blue_steps,
                         ROW_NUMBER() OVER (
@@ -872,13 +907,14 @@ def submit_checkers_score():
                                 created_at ASC,
                                 id ASC
                         ) AS rank
-                    FROM checkers_leaderboard
+                    FROM best_per_name
+                    WHERE name_rank = 1
                 )
                 SELECT rank, time_taken_ms, blue_steps
-                FROM ranked_players
-                WHERE player_id = %s
+                FROM ranked_names
+                WHERE normalized_username = LOWER(BTRIM(%s))
                 """,
-                (player_id,),
+                (username,),
             ).fetchone()
 
         return jsonify(
