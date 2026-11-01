@@ -174,11 +174,22 @@ def db_connection():
                         NOT NULL DEFAULT '玩家'
                     """)
 
+                    # 跳棋排行榜：先比藍方步數，再比完成時間。
                     conn.execute("""
                         CREATE INDEX IF NOT EXISTS checkers_leaderboard_ranking_idx
                         ON checkers_leaderboard (
                             time_taken_ms,
                             blue_steps,
+                            created_at,
+                            id
+                        )
+                    """)
+
+                    conn.execute("""
+                        CREATE INDEX IF NOT EXISTS checkers_leaderboard_steps_ranking_idx
+                        ON checkers_leaderboard (
+                            blue_steps,
+                            time_taken_ms,
                             created_at,
                             id
                         )
@@ -322,15 +333,15 @@ def get_leaderboard(level):
 
 
 def get_checkers_leaderboard():
-    """回傳跳棋前 50 名，不公開 session player_id。"""
+    """回傳跳棋前 50 名（先比藍方步數，再比完成時間），不公開 session player_id。"""
     with db_connection() as conn:
         rows = conn.execute(
             """
             SELECT username, time_taken_ms, blue_steps, created_at
             FROM checkers_leaderboard
             ORDER BY
-                time_taken_ms ASC,
                 blue_steps ASC,
+                time_taken_ms ASC,
                 created_at ASC,
                 id ASC
             LIMIT 50
@@ -806,11 +817,12 @@ def submit_checkers_score():
                 (player_id,),
             ).fetchone()
 
+            # 先比藍方步數，步數相同再比完成時間。
             improved = existing is None or (
-                time_taken_ms < existing["time_taken_ms"]
+                blue_steps < existing["blue_steps"]
                 or (
-                    time_taken_ms == existing["time_taken_ms"]
-                    and blue_steps < existing["blue_steps"]
+                    blue_steps == existing["blue_steps"]
+                    and time_taken_ms < existing["time_taken_ms"]
                 )
             )
 
@@ -855,8 +867,8 @@ def submit_checkers_score():
                         blue_steps,
                         ROW_NUMBER() OVER (
                             ORDER BY
-                                time_taken_ms ASC,
                                 blue_steps ASC,
+                                time_taken_ms ASC,
                                 created_at ASC,
                                 id ASC
                         ) AS rank
